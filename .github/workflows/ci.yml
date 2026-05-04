@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    name: build (${{ matrix.config }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        config: [Debug, Release]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            cmake \
+            ninja-build \
+            libeigen3-dev \
+            libgtest-dev \
+            libgmock-dev
+
+      - name: Show tool versions
+        run: |
+          cmake --version
+          ninja --version
+          c++ --version
+
+      - name: Configure (CMake preset)
+        run: cmake --preset ninja-multi
+
+      - name: Build
+        run: cmake --build --preset ninja-multi-${{ matrix.config == 'Debug' && 'debug' || 'release' }}
+
+      - name: Test
+        run: ctest --test-dir build -C ${{ matrix.config }} --output-on-failure
+
+      - name: Run example
+        run: ./build/${{ matrix.config }}/main

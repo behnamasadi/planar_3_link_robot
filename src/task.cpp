@@ -1,9 +1,5 @@
 #include "task.hpp"
 
-typedef Eigen::VectorXd vector_t;
-typedef Eigen::MatrixXd matrix_t;
-typedef Eigen::Transform<double,2,Eigen::Affine> trafo2d_t;
-
 /**************************************************
  * A function to compute the forward kinematics of
  * a planar 3-link robot.
@@ -150,39 +146,31 @@ void normaliseAngle2(Eigen::VectorXd &q)
  ************************************************/
 vector_t inverse_kinematics(vector_t const & q_start, trafo2d_t const & goal )
 {
-    vector_t q=q_start;
-    vector_t delta_q(3);
+    const double tol           = 1e-4;  // exit when ||pose error|| < tol
+    const int    max_iter      = 500;
+    const double alpha         = 0.3;   // damping on the Newton step
+    const double max_pose_step = 0.5;   // clamp pose-error magnitude per iteration
 
+    vector_t q = q_start;
 
-    double epsilon=1e-3;
+    for (int i = 0; i < max_iter; ++i) {
+        Eigen::VectorXd delta_p =
+            transformationMatrixToPose(goal) -
+            transformationMatrixToPose(forward_kinematics(q));
 
-    int i=0;
-    double gamma;
-    double stepSize=10;
+        if (delta_p.norm() < tol) break;
 
-    while( (distanceError(goal,forward_kinematics(q)).squaredNorm()>epsilon)  && (i<200)  )
-    {
-        Eigen::MatrixXd jacobian=numericalDifferentiationFK(q);
-        Eigen::MatrixXd j_pinv=pseudoInverse(jacobian);
-        Eigen::VectorXd delta_p=transformationMatrixToPose(goal)-transformationMatrixToPose(forward_kinematics(q) );
-
-        gamma=sqrt(pow(delta_p(0),2) +pow(delta_p(1),2));
-        //std::cout<<"gamma" <<gamma <<std::endl;
-        if(gamma >2)
-        {
-            delta_p(0)=delta_p(0)/stepSize*gamma;
-            delta_p(1)=delta_p(1)/stepSize*gamma;
+        // Clamp the per-iteration step in pose space to avoid overshoot
+        // when far from the goal, where the linearisation is poor.
+        const double err_norm = delta_p.norm();
+        if (err_norm > max_pose_step) {
+            delta_p *= max_pose_step / err_norm;
         }
-        else
-        {
-            delta_p(0)=delta_p(0)/stepSize;
-            delta_p(1)=delta_p(1)/stepSize;
 
-        }
-        delta_q=j_pinv*delta_p;
-        q=q+delta_q;
+        Eigen::MatrixXd jacobian = numericalDifferentiationFK(q);
+        Eigen::MatrixXd j_pinv   = pseudoInverse(jacobian);
+        q += alpha * j_pinv * delta_p;
         normaliseAngle2(q);
-        i++;
     }
     return q;
 }

@@ -1,9 +1,10 @@
+#pragma once
+
 #include <math.h>
 #include <iostream>
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
-#include <Eigen/Geometry>
-#include <eigen3/unsupported/Eigen/NumericalDiff>
+#include <unsupported/Eigen/NumericalDiff>
 
 
 typedef Eigen::VectorXd vector_t;

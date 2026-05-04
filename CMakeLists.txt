@@ -1,5 +1,4 @@
-cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
-set(CMAKE_BUILD_TYPE DEBUG)
+cmake_minimum_required(VERSION 3.21 FATAL_ERROR)
 
 project(planar_3_link_robot)
 
@@ -8,12 +7,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 
-find_package (Eigen3 REQUIRED)
+find_package(Threads REQUIRED)
+find_package(Eigen3 REQUIRED NO_MODULE)
 
-MESSAGE("EIGEN3_FOUND: " ${EIGEN3_FOUND})
-MESSAGE("EIGEN3_INCLUDE_DIR: " ${EIGEN3_INCLUDE_DIR})
-MESSAGE("EIGEN3_VERSION: " ${EIGEN3_VERSION})
-include_directories(${EIGEN3_INCLUDE_DIR})
+MESSAGE("Eigen3_FOUND: " ${Eigen3_FOUND})
+MESSAGE("Eigen3_VERSION: " ${Eigen3_VERSION})
 
 
 
@@ -35,11 +33,12 @@ endif()
 #set(CMAKE_CXX_FLAGS "-fno-omit-frame-pointer ${CMAKE_CXX_FLAGS}")
 
 
-add_executable(main src/main.cpp  src/task.cpp)
-target_link_libraries(main)
+add_executable(main src/main.cpp src/task.cpp)
+target_link_libraries(main PRIVATE Eigen3::Eigen)
 
 
-OPTION(TESTING_ENABLED "Enable testing" ON)
-IF(TESTING_ENABLED)
-	ADD_SUBDIRECTORY(tests)
-ENDIF()
+option(TESTING_ENABLED "Enable testing" ON)
+if(TESTING_ENABLED)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
